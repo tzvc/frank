@@ -36,7 +36,6 @@ class SignalHandler:
             worker.join()
         sys.exit(0)
 
-        
 def main():
     num_workers = 1
     shutdown_flag = threading.Event()
@@ -47,7 +46,7 @@ def main():
 
     for worker in workers:
         worker.start()
-    
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--credentials', type=existing_file,

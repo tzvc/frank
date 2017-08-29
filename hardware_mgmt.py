@@ -13,8 +13,8 @@ class HwComponent:
         self.pin = pin
         self.state = None
         self.pwm = None
-        self.dc = 0        
-        
+        self.dc = 0
+
         GPIO.setup(pin, input_mode)
         if is_pwm:
             self.pwm = GPIO.PWM(self.pin, 100);
@@ -34,23 +34,23 @@ class LedMgmtThread(threading.Thread):
         self.dc = 0                    # PWM duty cycle
         self.ct = 0
         self.sampling_freq = 0.01  # sampling frequency for the breathing function
-        
+
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        
+
         self.leds = {"red" : HwComponent(18, GPIO.OUT, is_pwm=True),
                      "green" : HwComponent(13, GPIO.OUT, is_pwm=True),
                      "blue" : HwComponent(12, GPIO.OUT, is_pwm=True)}
-        
+
         for led in self.leds.values():
             led.pwm.start(led.dc)
-        
+
     def run(self):
         while not self.shutdown_flag.is_set():
             try:
                 event = self.event_queue.get_nowait()
             except queue.Empty:
-                if not self.listening:                    
+                if not self.listening:
                     if (self.ct > (2*math.pi)):
                         self.ct = 0
                     self.dc = (math.exp(math.sin(self.ct)) - 0.36787944)*42.545906412
@@ -63,14 +63,19 @@ class LedMgmtThread(threading.Thread):
             else:
                 print(event)
                 if event.type == EventType.ON_CONVERSATION_TURN_STARTED:
-                    self.fade_in(0.0003, "red")
+                    self.fade_in(0.0003, "blue")
                     self.listening = True
                 elif (event.type == EventType.ON_CONVERSATION_TURN_FINISHED and
                     event.args and not event.args['with_follow_on_turn']):
-                    self.fade_out(0.005, "red")
+                    self.reset(0.005)
                     self.listening = False
+                elif event.type == EventType.ON_CONVERSATION_TURN_TIMEOUT:
+                    self.reset(0.005)
+                    for i in range(0, 2):
+                        self.fade_in(0.005, "red")
+                        self.fade_out(0.005, "red")
                 self.event_queue.task_done()
-                
+
     def fade_in(self, speed, color):
         done = False
         while not done:
@@ -94,3 +99,12 @@ class LedMgmtThread(threading.Thread):
             time.sleep(speed)
         self.ct = (3*math.pi)/2  # minima in range [0;2pi]
 
+    def reset(self, speed):
+        done = False
+        while not done:
+            done = True
+            for led in self.leds.values():
+                if led.dc > 0:
+                    led.dc -= 1
+                    done = False
+            time.sleep(speed)
