@@ -59,50 +59,37 @@ class LedMgmtThread(threading.Thread):
             else:
                 print(event)
                 if event.type == EventType.ON_CONVERSATION_TURN_STARTED:
-                    self.fade_in(0.0003, "blue")
+                    self.fade(("blue", 100), 0.0003)
                     self.listening = True
                 elif (event.type == EventType.ON_CONVERSATION_TURN_FINISHED and
                     event.args and not event.args['with_follow_on_turn']):
-                    self.fade_out(0.005, ["red", "green", "blue"])
+                    self.fade([("red", 0), ("green", 0), ("blue", 0)], 0.005)
                     self.listening = False
                     self.ct = (3*math.pi)/2  # minima in range [0;2pi]
                 elif event.type == EventType.ON_CONVERSATION_TURN_TIMEOUT:
-                    self.fade_out(0.0003, ["red", "green", "blue"])
+                    self.fade([("red", 0), ("green", 0), ("blue", 0)], 0.0003)
                     for i in range(0, 2):
-                        self.fade_in(0.0008, "red")
-                        self.fade_out(0.0008, "red")
+                        self.fade(("red", 100), 0.0008)
+                        self.fade(("red", 0), 0.0008)
                 elif event.type == EventType.ON_START_FINISHED:
                     self.service_started = True
                 self.event_queue.task_done()
 
-    def fade_in(self, speed, selected_leds):
+    def fade(self, leds, speed):
         done = False
-        print("Fading led " + str(selected_leds) + " in")
+        if not isinstance(leds, list):
+            leds = [leds]
+        print(leds)
         while not done:
             done = True
-            for c, led in self.leds.items():
-                if c != selected_leds and led.dc > 0:
-                    led.dc -= 1
-                    led.pwm.ChangeDutyCycle(led.dc)
-                    done = False
-                elif c == selected_leds and led.dc < 100:
-                    led.dc += 1
-                    led.pwm.ChangeDutyCycle(led.dc)
-                    done = False
-            time.sleep(speed)
-
-    def fade_out(self, speed, selected_leds):
-        done = False
-        if not isinstance(selected_leds, list):
-            selected_leds = [selected_leds]
-        print("Fading led " + str(selected_leds) + " out")
-        while not done:
-            done = True
-            for led in selected_leds:
-                if self.leds[led].dc > 0:
+            for led, target_dc in leds:
+                if self.leds[led].dc < target_dc:
+                    self.leds[led].dc += 1
+                elif self.leds[led].dc > target_dc:
                     self.leds[led].dc -= 1
-                    done = False
                 self.leds[led].pwm.ChangeDutyCycle(self.leds[led].dc)
+                if self.leds[led].dc != target_dc:
+                    done = False
             time.sleep(speed)
 
     def breath(self):
