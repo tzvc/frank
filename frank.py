@@ -60,7 +60,7 @@ def main():
                                                             **json.load(f))
 
     with Assistant(credentials) as assistant:
-        hw_threads.append(hw.LedMgmtThread(assistant, shutdown_flag))
+        hw_threads.append(hw.ButtonMgmtThread(assistant, shutdown_flag))
         for hw_thread in hw_threads:
             hw_thread.start()
         for event in assistant.start():

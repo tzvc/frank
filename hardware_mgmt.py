@@ -111,9 +111,13 @@ class ButtonMgmtThread(threading.Thread):
         self.shutdown_flag = shutdown_flag
 
     def run(self):
-        self.buttons = {"trigger" : Button(18)}
+        self.buttons = {"trigger" : Button(16)}
 
-        while True:
-            GPIO.wait_for_edge(self.buttons["trigger"], GPIO_RISING)
-            #assistant.start_conversation()
-            print("bite")
+        while not self.shutdown_flag.is_set():
+            chan = GPIO.wait_for_edge(self.buttons["trigger"].pin,
+                                      GPIO.FALLING,
+                                      bouncetime=600,
+                                      timeout=700)
+            if chan is not None:
+                print("Starting mannual turn")
+                self.assistant.start_conversation()
