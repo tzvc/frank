@@ -69,11 +69,12 @@ class LedMgmtThread(threading.Thread):
                     event.args and not event.args['with_follow_on_turn']):
                     self.reset(0.005)
                     self.listening = False
+                    self.ct = (3*math.pi)/2  # minima in range [0;2pi]
                 elif event.type == EventType.ON_CONVERSATION_TURN_TIMEOUT:
                     self.reset(0.005)
                     for i in range(0, 2):
-                        self.fade_in(0.005, "red")
-                        self.fade_out(0.005, "red")
+                        self.fade_in(0.0005, "red")
+                        self.fade_out(0.0005, "red")
                 self.event_queue.task_done()
 
     def fade_in(self, speed, color):
@@ -92,19 +93,16 @@ class LedMgmtThread(threading.Thread):
                 print(c + " " + str(led.dc))
             time.sleep(speed)
 
-    def fade_out(self, speed, color):
-        while self.leds[color].dc > 0:
-            self.leds[color].dc -= 1
-            self.leds[color].pwm.ChangeDutyCycle(self.leds[color].dc)
-            time.sleep(speed)
-        self.ct = (3*math.pi)/2  # minima in range [0;2pi]
-
-    def reset(self, speed):
+    def fade_out(self, speed, leds):
         done = False
+        if not isinstance(leds, list):
+            leds = [leds]
         while not done:
             done = True
-            for led in self.leds.values():
+            for color, led in leds.items():
                 if led.dc > 0:
                     led.dc -= 1
                     done = False
+                print(color + " : " + str(led.dc))
+                led.pwm.ChangeDutyCycle(led.dc)
             time.sleep(speed)
