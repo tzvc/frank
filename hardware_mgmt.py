@@ -9,21 +9,23 @@ import math
 from google.assistant.library.event import EventType
 
 class HwComponent:
-    def __init__(self, pin, input_mode):
+    def __init__(self, pin):
         self.pin = pin
         self.state = None
         self.pwm = None
         self.dc = 0
 
-        GPIO.setup(pin, input_mode)
-
-
 class Led(HwComponent):
     def __init__(self, pin):
-        super().__init__(pin, GPIO.OUT)
+        super().__init__(pin)
+        GPIO.setup(pin, GPIO.OUT)
         self.pwm = GPIO.PWM(self.pin, 100);
         self.pwm.start(self.dc)
-            
+
+class Button(HwComponent):
+    def __init__(self, pin):
+        super().__init__(pin)
+        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class LedMgmtThread(threading.Thread):
     """
@@ -101,3 +103,17 @@ class LedMgmtThread(threading.Thread):
             led.pwm.ChangeDutyCycle(dc)
         self.ct += self.sampling_freq
         time.sleep(self.breathing_speed)
+
+class ButtonMgmtThread(threading.Thread):
+    def __init__(self, assistant, shutdown_flag):
+        super().__init__()
+        self.assistant = assistant
+        self.shutdown_flag = shutdown_flag
+
+    def run(self):
+        self.buttons = {"trigger" : Button(18)}
+
+        while True:
+            GPIO.wait_for_edge(self.buttons["trigger"], GPIO_RISING)
+            #assistant.start_conversation()
+            print("bite")

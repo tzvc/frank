@@ -40,12 +40,9 @@ def main():
     num_workers = 1
     shutdown_flag = threading.Event()
     event_queue = queue.Queue()
-    workers = [hw.LedMgmtThread(event_queue, shutdown_flag) for i in range(num_workers)]
+    hw_threads = [hw.LedMgmtThread(event_queue, shutdown_flag) for i in range(num_workers)]
 
-    signal.signal(signal.SIGINT, SignalHandler(shutdown_flag, workers))
-
-    for worker in workers:
-        worker.start()
+    signal.signal(signal.SIGINT, SignalHandler(shutdown_flag, hw_threads))
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter)
@@ -63,6 +60,9 @@ def main():
                                                             **json.load(f))
 
     with Assistant(credentials) as assistant:
+        hw_threads.append(hw.LedMgmtThread(assistant, shutdown_flag))
+        for hw_thread in hw_threads:
+            hw_thread.start()
         for event in assistant.start():
             event_queue.put(event)
 
