@@ -61,7 +61,7 @@ class LedMgmtThread(threading.Thread):
             else:
                 print(event)
                 if event.type == EventType.ON_CONVERSATION_TURN_STARTED:
-                    self.fade(("blue", 100), 0.0003)
+                    self.fade([("red", 0), ("green", 0), ("blue", 100)], 0.0003)
                     self.listening = True
                 elif (event.type == EventType.ON_CONVERSATION_TURN_FINISHED and
                     event.args and not event.args['with_follow_on_turn']):
