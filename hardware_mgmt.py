@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import RPi.GPIO as GPIO
+import simpleaudio as sa
 import time
 import threading
 import queue
@@ -35,6 +36,7 @@ class LedMgmtThread(threading.Thread):
     """
     def __init__(self, event_queue, shutdown_flag):
         super().__init__()
+        self.wave_obj = sa.WaveObject.from_wave_file("./sound/wakeup.wav")
         self.event_queue = event_queue
         self.shutdown_flag = shutdown_flag
         self.breathing_speed = 0.0079  # speed of the breathing effect (12/min)
@@ -63,6 +65,7 @@ class LedMgmtThread(threading.Thread):
                 if event.type == EventType.ON_CONVERSATION_TURN_STARTED:
                     self.fade([("red", 0), ("green", 0), ("blue", 100)], 0.0003)
                     self.listening = True
+                    self.wave_obj.play()
                 elif (event.type == EventType.ON_CONVERSATION_TURN_FINISHED and
                     event.args and not event.args['with_follow_on_turn']):
                     self.fade([("red", 0), ("green", 0), ("blue", 0)], 0.005)
