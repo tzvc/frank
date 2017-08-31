@@ -28,23 +28,22 @@ class Button(HwComponent):
         super().__init__(pin)
         GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-class LedMgmtThread(threading.Thread):
+class OutputMgmtThread(threading.Thread):
     """
-    This thread manage integrated LEDs
-    it poll event from a event queue and trigger
-    corresponding animations
+    This thread manage outputs such as
+    integrated LEDs or sound.
+    It poll event from a event queue and trigger
+    corresponding actions.
     """
     def __init__(self, event_queue, shutdown_flag):
         super().__init__()
         self.wave_obj = sa.WaveObject.from_wave_file("./sound/wakeup.wav")
         self.event_queue = event_queue
         self.shutdown_flag = shutdown_flag
-        self.breathing_speed = 0.0079  # speed of the breathing effect (12/min)
         self.service_started = False
         self.listening = False
-        self.dc = 0                    # PWM duty cycle
         self.ct = 0
-        self.sampling_freq = 0.01  # sampling frequency for the breathing function
+        self.sampling_freq = 0.01      # sampling frequency for the breathing function
 
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
@@ -59,7 +58,7 @@ class LedMgmtThread(threading.Thread):
                 event = self.event_queue.get_nowait()
             except queue.Empty:
                 if self.service_started and not self.listening:
-                    self.breath()
+                    self.breath(0.0079) # breathing speed of 12/min
             else:
                 print(event)
                 if event.type == EventType.ON_CONVERSATION_TURN_STARTED:
@@ -97,7 +96,7 @@ class LedMgmtThread(threading.Thread):
                     done = False
             time.sleep(speed)
 
-    def breath(self):
+    def breath(self, speed):
         if (self.ct > (2*math.pi)):
             self.ct = 0
         dc = (math.exp(math.sin(self.ct)) - 0.36787944)*42.545906412
@@ -105,9 +104,14 @@ class LedMgmtThread(threading.Thread):
             led.dc = int(dc)
             led.pwm.ChangeDutyCycle(dc)
         self.ct += self.sampling_freq
-        time.sleep(self.breathing_speed)
+        time.sleep(speed)
 
-class ButtonMgmtThread(threading.Thread):
+class InputMgmtThread(threading.Thread):
+    """
+    This thread manage inputs such as buttons
+    and trigger corresponding actions.
+    Here a button is set to trigger the assistant.
+    """
     def __init__(self, assistant, shutdown_flag):
         super().__init__()
         self.assistant = assistant
